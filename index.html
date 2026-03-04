@@ -10,22 +10,122 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
-        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
         .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
         .card-shadow { box-shadow: 0 10px 40px -10px rgba(0,0,0,0.1); }
-        .input-focus:focus { ring: 2px; ring-color: #667eea; border-color: #667eea; }
         .slide-in { animation: slideIn 0.3s ease-out; }
         @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .pulse-btn { animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .loading { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .modal { background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); }
+        .protected { position: relative; }
+        .protected::after { content: '🔒'; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
 
-    <!-- Header -->
-    <header class="gradient-bg text-white sticky top-0 z-50 shadow-lg">
+    <!-- Tela de Login -->
+    <div id="loginScreen" class="fixed inset-0 gradient-bg flex items-center justify-center z-50">
+        <div class="bg-white rounded-2xl p-8 w-full max-w-md mx-4 card-shadow slide-in">
+            <div class="text-center mb-8">
+                <div class="bg-purple-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-10 h-10 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                </div>
+                <h1 class="text-2xl font-bold text-gray-800">Fenix Baixa Litoral</h1>
+                <p class="text-gray-500 text-sm mt-2">Sistema de Gestão de Materiais</p>
+            </div>
+            
+            <form onsubmit="fazerLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Usuário</label>
+                    <input type="text" id="loginUser" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none" placeholder="Digite o usuário">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Senha</label>
+                    <input type="password" id="loginPass" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none" placeholder="Digite a senha">
+                </div>
+                <button type="submit" id="btnLogin" class="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition">
+                    Entrar no Sistema
+                </button>
+            </form>
+            
+            <div class="mt-6 text-center">
+                <button onclick="mostrarRecuperarSenha()" class="text-sm text-purple-600 hover:underline">Esqueceu a senha?</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Recuperar/Trocar Senha -->
+    <div id="modalSenha" class="fixed inset-0 modal hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-md card-shadow slide-in">
+            <h3 class="text-xl font-bold mb-4" id="tituloModalSenha">Trocar Senha</h3>
+            
+            <div id="formTrocarSenha" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Senha Atual</label>
+                    <input type="password" id="senhaAtual" class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:border-purple-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Nova Senha</label>
+                    <input type="password" id="novaSenha" class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:border-purple-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Confirmar Nova Senha</label>
+                    <input type="password" id="confirmarSenha" class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:border-purple-500 outline-none">
+                </div>
+                <div class="flex space-x-2">
+                    <button onclick="trocarSenha()" class="flex-1 bg-purple-600 text-white py-2 rounded-lg font-semibold hover:bg-purple-700 transition">Salvar</button>
+                    <button onclick="fecharModalSenha()" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-300 transition">Cancelar</button>
+                </div>
+            </div>
+
+            <div id="formRecuperarSenha" class="space-y-4 hidden">
+                <p class="text-sm text-gray-600">Entre em contato com o administrador do sistema ou use o backup de segurança.</p>
+                <div class="bg-yellow-50 p-3 rounded-lg text-sm text-yellow-800">
+                    <strong>Senha padrão:</strong><br>
+                    Usuário: fenix<br>
+                    Senha: Hung0v3r7@
+                </div>
+                <button onclick="fecharModalSenha()" class="w-full bg-gray-200 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-300 transition">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Autenticação Protegida -->
+    <div id="modalAuth" class="fixed inset-0 modal hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-md card-shadow slide-in">
+            <div class="text-center mb-4">
+                <div class="text-4xl mb-2">🔒</div>
+                <h3 class="text-xl font-bold">Área Restrita</h3>
+                <p class="text-sm text-gray-500">Confirme suas credenciais para continuar</p>
+            </div>
+            
+            <div class="space-y-4">
+                <input type="hidden" id="authAcao" value="">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Usuário</label>
+                    <input type="text" id="authUser" class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:border-purple-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Senha</label>
+                    <input type="password" id="authPass" class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:border-purple-500 outline-none">
+                </div>
+                <div class="flex space-x-2">
+                    <button onclick="confirmarAuth()" class="flex-1 bg-purple-600 text-white py-2 rounded-lg font-semibold hover:bg-purple-700 transition">Confirmar</button>
+                    <button onclick="fecharModalAuth()" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-300 transition">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header (só aparece após login) -->
+    <header id="mainHeader" class="gradient-bg text-white sticky top-0 z-40 shadow-lg hidden">
         <div class="container mx-auto px-4 py-4 flex items-center justify-between">
             <div class="flex items-center space-x-3">
                 <div class="bg-white/20 p-2 rounded-lg">
@@ -35,14 +135,21 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-bold tracking-tight">Fenix Baixa Litoral</h1>
-                    <p class="text-xs text-white/80">Sistema de Gestão de Materiais</p>
+                    <p class="text-xs text-white/80" id="userDisplay">Usuário: fenix</p>
                 </div>
             </div>
-            <button onclick="toggleMenu()" class="p-2 hover:bg-white/20 rounded-lg transition">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-                </svg>
-            </button>
+            <div class="flex items-center space-x-2">
+                <button onclick="sincronizarDados()" class="p-2 hover:bg-white/20 rounded-lg transition" title="Sincronizar">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                </button>
+                <button onclick="toggleMenu()" class="p-2 hover:bg-white/20 rounded-lg transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                </button>
+            </div>
         </div>
     </header>
 
@@ -60,14 +167,24 @@
                 <button onclick="showSection('relatorios'); toggleMenu()" class="w-full text-left px-4 py-3 rounded-lg hover:bg-purple-50 text-gray-700 font-medium transition flex items-center">
                     <span class="mr-3">📊</span> Relatórios
                 </button>
-                <button onclick="showSection('estoque'); toggleMenu()" class="w-full text-left px-4 py-3 rounded-lg hover:bg-purple-50 text-gray-700 font-medium transition flex items-center">
-                    <span class="mr-3">📦</span> Controle de Estoque
+                <button onclick="solicitarAuth('estoque')" class="w-full text-left px-4 py-3 rounded-lg hover:bg-orange-50 text-orange-700 font-medium transition flex items-center protected">
+                    <span class="mr-3">📦</span> Editar Estoque
                 </button>
-                <button onclick="exportarBackup(); toggleMenu()" class="w-full text-left px-4 py-3 rounded-lg hover:bg-blue-50 text-blue-600 font-medium transition flex items-center">
-                    <span class="mr-3">💾</span> Exportar Backup
+                <button onclick="solicitarAuth('limpar')" class="w-full text-left px-4 py-3 rounded-lg hover:bg-red-50 text-red-700 font-medium transition flex items-center protected">
+                    <span class="mr-3">🗑️</span> Limpar Histórico
                 </button>
-                <button onclick="importarBackup(); toggleMenu()" class="w-full text-left px-4 py-3 rounded-lg hover:bg-green-50 text-green-600 font-medium transition flex items-center">
-                    <span class="mr-3">📥</span> Importar Backup
+                <div class="border-t border-gray-200 my-2"></div>
+                <button onclick="mostrarTrocarSenha()" class="w-full text-left px-4 py-3 rounded-lg hover:bg-blue-50 text-blue-600 font-medium transition flex items-center">
+                    <span class="mr-3">🔑</span> Trocar Senha
+                </button>
+                <button onclick="exportarDados()" class="w-full text-left px-4 py-3 rounded-lg hover:bg-green-50 text-green-600 font-medium transition flex items-center">
+                    <span class="mr-3">💾</span> Exportar Dados
+                </button>
+                <button onclick="importarDados()" class="w-full text-left px-4 py-3 rounded-lg hover:bg-yellow-50 text-yellow-600 font-medium transition flex items-center">
+                    <span class="mr-3">📥</span> Importar Dados
+                </button>
+                <button onclick="fazerLogout()" class="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 text-gray-700 font-medium transition flex items-center">
+                    <span class="mr-3">🚪</span> Sair
                 </button>
             </nav>
             <input type="file" id="importFile" class="hidden" accept=".json" onchange="processarImportacao(event)">
@@ -75,7 +192,7 @@
     </div>
 
     <!-- Main Content -->
-    <main class="container mx-auto px-4 py-6 max-w-md md:max-w-4xl">
+    <main id="mainContent" class="container mx-auto px-4 py-6 max-w-md md:max-w-4xl hidden">
 
         <!-- Nova Baixa Section -->
         <section id="novaBaixa" class="slide-in">
@@ -86,21 +203,20 @@
                 </h2>
 
                 <form id="baixaForm" onsubmit="salvarBaixa(event)" class="space-y-4">
-                    <!-- Dados do Cliente -->
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-1">Nome do Cliente</label>
-                            <input type="text" id="cliente" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition outline-none" placeholder="Digite o nome completo">
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Nome do Cliente *</label>
+                            <input type="text" id="cliente" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none" placeholder="Digite o nome completo">
                         </div>
                         
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-1">Ordem de Serviço (OS)</label>
-                                <input type="text" id="os" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition outline-none" placeholder="Nº OS">
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Ordem de Serviço (OS) *</label>
+                                <input type="text" id="os" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none" placeholder="Nº OS">
                             </div>
                             <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-1">Técnico</label>
-                                <input type="text" id="tecnico" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition outline-none" placeholder="Nome do técnico">
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Técnico *</label>
+                                <input type="text" id="tecnico" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none" placeholder="Nome do técnico">
                             </div>
                         </div>
                     </div>
@@ -115,11 +231,11 @@
                         <div class="space-y-3">
                             <div>
                                 <label class="block text-xs font-medium text-blue-700 mb-1">Cabo Drop Flat (metros)</label>
-                                <input type="number" id="caboDrop" step="0.1" min="0" class="w-full px-3 py-2 rounded-lg border border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition outline-none" placeholder="0.0" onchange="calcularTotal()">
+                                <input type="number" id="caboDrop" step="0.1" min="0" class="w-full px-3 py-2 rounded-lg border border-blue-200 focus:border-blue-500 outline-none" placeholder="0.0" onchange="calcularTotal()">
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-blue-700 mb-1">Cabo de Rede (metros)</label>
-                                <input type="number" id="caboRede" step="0.1" min="0" class="w-full px-3 py-2 rounded-lg border border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition outline-none" placeholder="0.0" onchange="calcularTotal()">
+                                <input type="number" id="caboRede" step="0.1" min="0" class="w-full px-3 py-2 rounded-lg border border-blue-200 focus:border-blue-500 outline-none" placeholder="0.0" onchange="calcularTotal()">
                             </div>
                         </div>
                     </div>
@@ -132,60 +248,58 @@
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-xs font-medium text-green-700 mb-1">Conector Verde</label>
-                                <input type="number" id="conectorVerde" min="0" class="w-full px-3 py-2 rounded-lg border border-green-200 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition outline-none" placeholder="0" onchange="calcularTotal()">
+                                <input type="number" id="conectorVerde" min="0" class="w-full px-3 py-2 rounded-lg border border-green-200 focus:border-green-500 outline-none" placeholder="0" onchange="calcularTotal()">
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-green-700 mb-1">Conector Azul</label>
-                                <input type="number" id="conectorAzul" min="0" class="w-full px-3 py-2 rounded-lg border border-green-200 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition outline-none" placeholder="0" onchange="calcularTotal()">
+                                <input type="number" id="conectorAzul" min="0" class="w-full px-3 py-2 rounded-lg border border-green-200 focus:border-green-500 outline-none" placeholder="0" onchange="calcularTotal()">
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-green-700 mb-1">Acoplador</label>
-                                <input type="number" id="acoplador" min="0" class="w-full px-3 py-2 rounded-lg border border-green-200 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition outline-none" placeholder="0" onchange="calcularTotal()">
+                                <input type="number" id="acoplador" min="0" class="w-full px-3 py-2 rounded-lg border border-green-200 focus:border-green-500 outline-none" placeholder="0" onchange="calcularTotal()">
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-green-700 mb-1">Alça 1.33</label>
-                                <input type="number" id="alca133" min="0" class="w-full px-3 py-2 rounded-lg border border-green-200 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition outline-none" placeholder="0" onchange="calcularTotal()">
+                                <input type="number" id="alca133" min="0" class="w-full px-3 py-2 rounded-lg border border-green-200 focus:border-green-500 outline-none" placeholder="0" onchange="calcularTotal()">
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-green-700 mb-1">Alça Fe</label>
-                                <input type="number" id="alcaFe" min="0" class="w-full px-3 py-2 rounded-lg border border-green-200 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition outline-none" placeholder="0" onchange="calcularTotal()">
+                                <input type="number" id="alcaFe" min="0" class="w-full px-3 py-2 rounded-lg border border-green-200 focus:border-green-500 outline-none" placeholder="0" onchange="calcularTotal()">
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-green-700 mb-1">Fixa Fio</label>
-                                <input type="number" id="fixaFio" min="0" class="w-full px-3 py-2 rounded-lg border border-green-200 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition outline-none" placeholder="0" onchange="calcularTotal()">
+                                <input type="number" id="fixaFio" min="0" class="w-full px-3 py-2 rounded-lg border border-green-200 focus:border-green-500 outline-none" placeholder="0" onchange="calcularTotal()">
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-green-700 mb-1">Isolador</label>
-                                <input type="number" id="isolador" min="0" class="w-full px-3 py-2 rounded-lg border border-green-200 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition outline-none" placeholder="0" onchange="calcularTotal()">
+                                <input type="number" id="isolador" min="0" class="w-full px-3 py-2 rounded-lg border border-green-200 focus:border-green-500 outline-none" placeholder="0" onchange="calcularTotal()">
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-green-700 mb-1">Selo de Aço</label>
-                                <input type="number" id="seloAco" min="0" class="w-full px-3 py-2 rounded-lg border border-green-200 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition outline-none" placeholder="0" onchange="calcularTotal()">
+                                <input type="number" id="seloAco" min="0" class="w-full px-3 py-2 rounded-lg border border-green-200 focus:border-green-500 outline-none" placeholder="0" onchange="calcularTotal()">
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-green-700 mb-1">Pitão</label>
-                                <input type="number" id="pitao" min="0" class="w-full px-3 py-2 rounded-lg border border-green-200 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition outline-none" placeholder="0" onchange="calcularTotal()">
+                                <input type="number" id="pitao" min="0" class="w-full px-3 py-2 rounded-lg border border-green-200 focus:border-green-500 outline-none" placeholder="0" onchange="calcularTotal()">
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-green-700 mb-1">Plaqueta</label>
-                                <input type="number" id="plaqueta" min="0" class="w-full px-3 py-2 rounded-lg border border-green-200 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition outline-none" placeholder="0" onchange="calcularTotal()">
+                                <input type="number" id="plaqueta" min="0" class="w-full px-3 py-2 rounded-lg border border-green-200 focus:border-green-500 outline-none" placeholder="0" onchange="calcularTotal()">
                             </div>
                         </div>
                     </div>
 
-                    <!-- Observações -->
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-1">Observações</label>
-                        <textarea id="observacoes" rows="3" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition outline-none resize-none" placeholder="Informações adicionais..."></textarea>
+                        <textarea id="observacoes" rows="3" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none resize-none" placeholder="Informações adicionais..."></textarea>
                     </div>
 
-                    <!-- Total e Submit -->
                     <div class="bg-gray-50 rounded-xl p-4 flex justify-between items-center">
                         <div>
                             <p class="text-sm text-gray-600">Total de itens</p>
                             <p class="text-2xl font-bold text-purple-600" id="totalItens">0</p>
                         </div>
-                        <button type="submit" class="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition pulse-btn">
+                        <button type="submit" id="btnSalvar" class="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition pulse-btn">
                             Salvar Baixa
                         </button>
                     </div>
@@ -206,7 +320,6 @@
                     </button>
                 </div>
 
-                <!-- Filtros -->
                 <div id="filtros" class="hidden mb-4 space-y-3 bg-gray-50 p-4 rounded-xl">
                     <input type="text" id="filtroCliente" placeholder="Filtrar por cliente..." class="w-full px-3 py-2 rounded-lg border border-gray-200" onkeyup="aplicarFiltros()">
                     <input type="text" id="filtroTecnico" placeholder="Filtrar por técnico..." class="w-full px-3 py-2 rounded-lg border border-gray-200" onkeyup="aplicarFiltros()">
@@ -214,7 +327,6 @@
                 </div>
 
                 <div id="listaHistorico" class="space-y-4 max-h-96 overflow-y-auto hide-scrollbar">
-                    <!-- Items will be inserted here -->
                 </div>
                 
                 <div id="emptyState" class="text-center py-12 text-gray-400 hidden">
@@ -235,77 +347,87 @@
                 <div class="space-y-4">
                     <div class="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-6 border border-purple-100">
                         <h3 class="font-bold text-gray-800 mb-2">Relatório Completo</h3>
-                        <p class="text-sm text-gray-600 mb-4">Gera PDF com todo o histórico de baixas e estatísticas</p>
-                        <button onclick="gerarRelatorioPDF('completo')" class="w-full bg-purple-600 text-white py-3 rounded-xl font-semibold hover:bg-purple-700 transition flex items-center justify-center">
-                            <span class="mr-2">📄</span> Gerar Relatório Completo
+                        <p class="text-sm text-gray-600 mb-4">Gera PDF com todo o histórico</p>
+                        <button onclick="gerarRelatorioPDF('completo')" class="w-full bg-purple-600 text-white py-3 rounded-xl font-semibold hover:bg-purple-700 transition">
+                            📄 Gerar Relatório Completo
                         </button>
                     </div>
 
                     <div class="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-6 border border-blue-100">
                         <h3 class="font-bold text-gray-800 mb-2">Relatório por Técnico</h3>
-                        <p class="text-sm text-gray-600 mb-4">Análise de consumo por técnico específico</p>
                         <select id="selectTecnicoRelatorio" class="w-full mb-3 px-3 py-2 rounded-lg border border-blue-200">
                             <option value="">Selecione um técnico...</option>
                         </select>
-                        <button onclick="gerarRelatorioPDF('tecnico')" class="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition flex items-center justify-center">
-                            <span class="mr-2">👨‍🔧</span> Gerar por Técnico
+                        <button onclick="gerarRelatorioPDF('tecnico')" class="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition">
+                            👨‍🔧 Gerar por Técnico
                         </button>
                     </div>
 
                     <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-100">
                         <h3 class="font-bold text-gray-800 mb-2">Relatório por Período</h3>
-                        <p class="text-sm text-gray-600 mb-4">Filtrar baixas por data específica</p>
                         <div class="grid grid-cols-2 gap-2 mb-3">
                             <input type="date" id="dataInicio" class="px-3 py-2 rounded-lg border border-green-200 text-sm">
                             <input type="date" id="dataFim" class="px-3 py-2 rounded-lg border border-green-200 text-sm">
                         </div>
-                        <button onclick="gerarRelatorioPDF('periodo')" class="w-full bg-green-600 text-white py-3 rounded-xl font-semibold hover:bg-green-700 transition flex items-center justify-center">
-                            <span class="mr-2">📅</span> Gerar por Período
+                        <button onclick="gerarRelatorioPDF('periodo')" class="w-full bg-green-600 text-white py-3 rounded-xl font-semibold hover:bg-green-700 transition">
+                            📅 Gerar por Período
                         </button>
                     </div>
                 </div>
 
-                <!-- Estatísticas Rápidas -->
                 <div class="mt-6 grid grid-cols-2 gap-4">
                     <div class="bg-gray-50 rounded-xl p-4 text-center">
                         <p class="text-3xl font-bold text-purple-600" id="statTotalBaixas">0</p>
-                        <p class="text-xs text-gray-600 uppercase tracking-wide">Total Baixas</p>
+                        <p class="text-xs text-gray-600 uppercase">Total Baixas</p>
                     </div>
                     <div class="bg-gray-50 rounded-xl p-4 text-center">
                         <p class="text-3xl font-bold text-blue-600" id="statTotalMateriais">0</p>
-                        <p class="text-xs text-gray-600 uppercase tracking-wide">Itens Usados</p>
+                        <p class="text-xs text-gray-600 uppercase">Itens Usados</p>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Estoque Section -->
+        <!-- Estoque Section (Protegida) -->
         <section id="estoque" class="hidden slide-in">
             <div class="bg-white rounded-2xl card-shadow p-6">
-                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
-                    <span class="bg-orange-100 text-orange-600 p-2 rounded-lg mr-3">📦</span>
-                    Controle de Estoque
-                </h2>
-
-                <div class="space-y-4" id="listaEstoque">
-                    <!-- Estoque items will be inserted here -->
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800 flex items-center">
+                        <span class="bg-orange-100 text-orange-600 p-2 rounded-lg mr-3">📦</span>
+                        Controle de Estoque
+                    </h2>
+                    <span class="bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-bold">🔒 PROTEGIDO</span>
                 </div>
 
-                <button onclick="atualizarEstoqueManual()" class="w-full mt-6 bg-orange-500 text-white py-3 rounded-xl font-semibold hover:bg-orange-600 transition">
-                    Atualizar Estoque Manualmente
-                </button>
+                <div class="space-y-4" id="listaEstoque">
+                </div>
+
+                <div class="mt-6 p-4 bg-orange-50 rounded-xl border border-orange-200">
+                    <p class="text-sm text-orange-800 text-center">
+                        <strong>⚠️ Área Restrita</strong><br>
+                        Apenas usuários autenticados podem editar o estoque.
+                    </p>
+                </div>
             </div>
         </section>
 
     </main>
 
-    <!-- Toast Notification -->
+    <!-- Toast -->
     <div id="toast" class="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-2xl hidden transition-all duration-300 z-50">
         <span id="toastMessage">Mensagem</span>
     </div>
 
     <script>
-        // Database
+        // Configurações de Segurança
+        const CONFIG = {
+            usuarioPadrao: 'fenix',
+            senhaPadrao: 'Hung0v3r7@',
+            gistId: localStorage.getItem('fenix_gist_id') || null,
+            githubToken: localStorage.getItem('fenix_github_token') || ''
+        };
+
+        // Estado do sistema
         let db = {
             baixas: [],
             estoque: {
@@ -321,17 +443,141 @@
                 'Selo de Aço': { tipo: 'unidade', quantidade: 400, minimo: 40 },
                 'Pitão': { tipo: 'unidade', quantidade: 250, minimo: 25 },
                 'Plaqueta': { tipo: 'unidade', quantidade: 200, minimo: 20 }
+            },
+            config: {
+                usuario: 'fenix',
+                senhaHash: btoa('Hung0v3r7@') // Simples encoding base64
             }
         };
 
+        let isLoggedIn = false;
+
         // Inicialização
         document.addEventListener('DOMContentLoaded', () => {
-            carregarDados();
+            carregarDadosLocais();
+            verificarSessao();
+        });
+
+        // Autenticação
+        function verificarSessao() {
+            const sessao = sessionStorage.getItem('fenix_session');
+            if (sessao === 'active') {
+                mostrarSistema();
+            }
+        }
+
+        function fazerLogin(e) {
+            e.preventDefault();
+            const user = document.getElementById('loginUser').value;
+            const pass = document.getElementById('loginPass').value;
+            
+            if (user === db.config.usuario && btoa(pass) === db.config.senhaHash) {
+                sessionStorage.setItem('fenix_session', 'active');
+                isLoggedIn = true;
+                mostrarSistema();
+                showToast('Bem-vindo ao Fenix Baixa Litoral!');
+            } else {
+                showToast('Usuário ou senha incorretos!', 'error');
+                document.getElementById('loginPass').value = '';
+            }
+        }
+
+        function fazerLogout() {
+            sessionStorage.removeItem('fenix_session');
+            location.reload();
+        }
+
+        function mostrarSistema() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('mainHeader').classList.remove('hidden');
+            document.getElementById('mainContent').classList.remove('hidden');
+            document.getElementById('userDisplay').textContent = `Usuário: ${db.config.usuario}`;
             atualizarListaHistorico();
             atualizarEstoque();
             atualizarEstatisticas();
             preencherSelectTecnicos();
-        });
+        }
+
+        // Proteção de áreas restritas
+        function solicitarAuth(acao) {
+            document.getElementById('authAcao').value = acao;
+            document.getElementById('modalAuth').classList.remove('hidden');
+            document.getElementById('authUser').value = '';
+            document.getElementById('authPass').value = '';
+            document.getElementById('authUser').focus();
+        }
+
+        function fecharModalAuth() {
+            document.getElementById('modalAuth').classList.add('hidden');
+        }
+
+        function confirmarAuth() {
+            const user = document.getElementById('authUser').value;
+            const pass = document.getElementById('authPass').value;
+            const acao = document.getElementById('authAcao').value;
+            
+            if (user === db.config.usuario && btoa(pass) === db.config.senhaHash) {
+                fecharModalAuth();
+                if (acao === 'estoque') {
+                    showSection('estoque');
+                    habilitarEdicaoEstoque();
+                } else if (acao === 'limpar') {
+                    solicitarLimparHistorico();
+                }
+            } else {
+                showToast('Credenciais incorretas!', 'error');
+            }
+        }
+
+        // Troca de Senha
+        function mostrarTrocarSenha() {
+            document.getElementById('modalSenha').classList.remove('hidden');
+            document.getElementById('formTrocarSenha').classList.remove('hidden');
+            document.getElementById('formRecuperarSenha').classList.add('hidden');
+            document.getElementById('tituloModalSenha').textContent = 'Trocar Senha';
+        }
+
+        function mostrarRecuperarSenha() {
+            document.getElementById('modalSenha').classList.remove('hidden');
+            document.getElementById('formTrocarSenha').classList.add('hidden');
+            document.getElementById('formRecuperarSenha').classList.remove('hidden');
+            document.getElementById('tituloModalSenha').textContent = 'Recuperar Senha';
+        }
+
+        function fecharModalSenha() {
+            document.getElementById('modalSenha').classList.add('hidden');
+            document.getElementById('senhaAtual').value = '';
+            document.getElementById('novaSenha').value = '';
+            document.getElementById('confirmarSenha').value = '';
+        }
+
+        function trocarSenha() {
+            const atual = document.getElementById('senhaAtual').value;
+            const nova = document.getElementById('novaSenha').value;
+            const confirmar = document.getElementById('confirmarSenha').value;
+            
+            if (btoa(atual) !== db.config.senhaHash) {
+                showToast('Senha atual incorreta!', 'error');
+                return;
+            }
+            
+            if (nova.length < 6) {
+                showToast('A nova senha deve ter pelo menos 6 caracteres!', 'error');
+                return;
+            }
+            
+            if (nova !== confirmar) {
+                showToast('As senhas não conferem!', 'error');
+                return;
+            }
+            
+            db.config.senhaHash = btoa(nova);
+            salvarDadosLocais();
+            sincronizarComNuvem();
+            
+            showToast('Senha alterada com sucesso!');
+            fecharModalSenha();
+        }
 
         // Navegação
         function showSection(sectionId) {
@@ -349,25 +595,26 @@
         }
 
         function toggleMenu() {
-            const overlay = document.getElementById('menuOverlay');
-            overlay.classList.toggle('hidden');
+            document.getElementById('menuOverlay').classList.toggle('hidden');
         }
 
-        // Cálculo total
+        // Cálculos e Formulários
         function calcularTotal() {
             const campos = ['caboDrop', 'caboRede', 'conectorVerde', 'conectorAzul', 'acoplador', 
                           'alca133', 'alcaFe', 'fixaFio', 'isolador', 'seloAco', 'pitao', 'plaqueta'];
             let total = 0;
             campos.forEach(campo => {
-                const val = parseFloat(document.getElementById(campo).value) || 0;
-                total += val;
+                total += parseFloat(document.getElementById(campo).value) || 0;
             });
             document.getElementById('totalItens').textContent = total.toFixed(1);
         }
 
-        // Salvar Baixa
-        function salvarBaixa(e) {
+        async function salvarBaixa(e) {
             e.preventDefault();
+            
+            const btn = document.getElementById('btnSalvar');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> Salvando...';
             
             const baixa = {
                 id: Date.now(),
@@ -393,33 +640,34 @@
             };
 
             // Verificar estoque
-            for (let [material, qtd] of Object.entries(baixa.materiais)) {
-                if (qtd > db.estoque[material].quantidade) {
-                    showToast(`Estoque insuficiente para ${material}! Disponível: ${db.estoque[material].quantidade}`, 'error');
+            for (let [mat, qtd] of Object.entries(baixa.materiais)) {
+                if (qtd > db.estoque[mat].quantidade) {
+                    showToast(`Estoque insuficiente: ${mat}`, 'error');
+                    btn.disabled = false;
+                    btn.textContent = 'Salvar Baixa';
                     return;
                 }
             }
 
             // Atualizar estoque
-            for (let [material, qtd] of Object.entries(baixa.materiais)) {
-                if (qtd > 0) {
-                    db.estoque[material].quantidade -= qtd;
-                }
+            for (let [mat, qtd] of Object.entries(baixa.materiais)) {
+                if (qtd > 0) db.estoque[mat].quantidade -= qtd;
             }
 
             db.baixas.unshift(baixa);
-            salvarDados();
+            salvarDadosLocais();
+            await sincronizarComNuvem();
             
             showToast('Baixa salva com sucesso!');
             document.getElementById('baixaForm').reset();
             document.getElementById('totalItens').textContent = '0';
+            btn.disabled = false;
+            btn.textContent = 'Salvar Baixa';
             
-            setTimeout(() => {
-                gerarPDFIndividual(baixa);
-            }, 500);
+            setTimeout(() => gerarPDFIndividual(baixa), 500);
         }
 
-        // Atualizar Histórico
+        // Histórico
         function atualizarListaHistorico(filtradas = null) {
             const lista = document.getElementById('listaHistorico');
             const empty = document.getElementById('emptyState');
@@ -432,37 +680,36 @@
             }
             
             empty.classList.add('hidden');
-            lista.innerHTML = baixas.map(baixa => {
-                const data = new Date(baixa.data).toLocaleDateString('pt-BR');
-                const materiaisUsados = Object.entries(baixa.materiais)
-                    .filter(([_, qtd]) => qtd > 0)
-                    .map(([nome, qtd]) => `${nome}: ${qtd}${db.estoque[nome].tipo === 'metro' ? 'm' : 'un'}`)
+            lista.innerHTML = baixas.map(b => {
+                const data = new Date(b.data).toLocaleDateString('pt-BR');
+                const mats = Object.entries(b.materiais)
+                    .filter(([_, q]) => q > 0)
+                    .map(([n, q]) => `${n.split(' ')[0]}: ${q}${db.estoque[n].tipo === 'metro' ? 'm' : ''}`)
                     .join(', ');
                 
                 return `
-                    <div class="bg-gray-50 rounded-xl p-4 border border-gray-200 hover:shadow-md transition cursor-pointer" onclick="verDetalhes(${baixa.id})">
+                    <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
                         <div class="flex justify-between items-start mb-2">
                             <div>
-                                <h4 class="font-bold text-gray-800">${baixa.cliente}</h4>
-                                <p class="text-xs text-gray-500">OS: ${baixa.os} | ${data}</p>
+                                <h4 class="font-bold text-gray-800">${b.cliente}</h4>
+                                <p class="text-xs text-gray-500">OS: ${b.os} | ${data}</p>
                             </div>
-                            <span class="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-full">${baixa.tecnico}</span>
+                            <span class="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-full">${b.tecnico}</span>
                         </div>
-                        <p class="text-sm text-gray-600 line-clamp-2">${materiaisUsados}</p>
-                        <div class="mt-3 flex space-x-2">
-                            <button onclick="event.stopPropagation(); gerarPDFIndividualById(${baixa.id})" class="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-lg hover:bg-blue-200 transition">
-                                📄 PDF
-                            </button>
-                            <button onclick="event.stopPropagation(); excluirBaixa(${baixa.id})" class="text-xs bg-red-100 text-red-700 px-3 py-1 rounded-lg hover:bg-red-200 transition">
-                                🗑️ Excluir
-                            </button>
+                        <p class="text-xs text-gray-600 mb-2">${mats}</p>
+                        <div class="flex space-x-2">
+                            <button onclick="gerarPDFIndividualById(${b.id})" class="flex-1 text-xs bg-blue-100 text-blue-700 py-2 rounded-lg hover:bg-blue-200">📄 PDF</button>
+                            <button onclick="solicitarAuthExclusao(${b.id})" class="flex-1 text-xs bg-red-100 text-red-700 py-2 rounded-lg hover:bg-red-200">🗑️ Excluir</button>
                         </div>
                     </div>
                 `;
             }).join('');
         }
 
-        // Filtros
+        function solicitarAuthExclusao(id) {
+            solicitarAuth('excluir_' + id);
+        }
+
         function filtrarHistorico() {
             document.getElementById('filtros').classList.toggle('hidden');
         }
@@ -482,26 +729,59 @@
             atualizarListaHistorico(filtradas);
         }
 
+        async function excluirBaixa(id) {
+            const idx = db.baixas.findIndex(b => b.id === id);
+            if (idx > -1) {
+                // Devolver estoque
+                const baixa = db.baixas[idx];
+                Object.entries(baixa.materiais).forEach(([mat, qtd]) => {
+                    db.estoque[mat].quantidade += qtd;
+                });
+                
+                db.baixas.splice(idx, 1);
+                salvarDadosLocais();
+                await sincronizarComNuvem();
+                atualizarListaHistorico();
+                atualizarEstoque();
+                showToast('Baixa excluída!');
+            }
+        }
+
+        function solicitarLimparHistorico() {
+            if (!confirm('ATENÇÃO! Isso apagará TODAS as baixas. Continuar?')) return;
+            if (!confirm('Tem certeza? Esta ação não pode ser desfeita!')) return;
+            
+            // Devolver tudo ao estoque
+            db.baixas.forEach(b => {
+                Object.entries(b.materiais).forEach(([mat, qtd]) => {
+                    db.estoque[mat].quantidade += qtd;
+                });
+            });
+            
+            db.baixas = [];
+            salvarDadosLocais();
+            sincronizarComNuvem();
+            atualizarListaHistorico();
+            atualizarEstoque();
+            showToast('Histórico limpo!');
+        }
+
         // Estoque
         function atualizarEstoque() {
             const lista = document.getElementById('listaEstoque');
             lista.innerHTML = Object.entries(db.estoque).map(([nome, info]) => {
-                const percentual = (info.quantidade / (info.quantidade + 100)) * 100;
-                const cor = info.quantidade <= info.minimo ? 'red' : percentual < 30 ? 'yellow' : 'green';
-                const corClass = {
-                    red: 'bg-red-100 border-red-200 text-red-800',
-                    yellow: 'bg-yellow-100 border-yellow-200 text-yellow-800',
-                    green: 'bg-green-100 border-green-200 text-green-800'
-                }[cor];
+                const alerta = info.quantidade <= info.minimo ? 'bg-red-100 border-red-200 text-red-800' : 
+                              info.quantidade <= info.minimo * 1.5 ? 'bg-yellow-100 border-yellow-200 text-yellow-800' : 
+                              'bg-green-100 border-green-200 text-green-800';
                 
                 return `
-                    <div class="flex justify-between items-center p-3 rounded-lg border ${corClass}">
+                    <div class="flex justify-between items-center p-3 rounded-lg border ${alerta}">
                         <div>
-                            <p class="font-semibold">${nome}</p>
+                            <p class="font-semibold text-sm">${nome}</p>
                             <p class="text-xs opacity-75">${info.tipo === 'metro' ? 'Metros' : 'Unidades'}</p>
                         </div>
                         <div class="text-right">
-                            <p class="text-2xl font-bold">${info.quantidade}</p>
+                            <p class="text-xl font-bold">${info.quantidade}</p>
                             <p class="text-xs opacity-75">Mín: ${info.minimo}</p>
                         </div>
                     </div>
@@ -509,20 +789,40 @@
             }).join('');
         }
 
-        function atualizarEstoqueManual() {
-            const material = prompt('Qual material deseja atualizar?\n' + Object.keys(db.estoque).join('\n'));
-            if (!material || !db.estoque[material]) return;
+        function habilitarEdicaoEstoque() {
+            const lista = document.getElementById('listaEstoque');
+            lista.innerHTML = Object.entries(db.estoque).map(([nome, info]) => `
+                <div class="flex justify-between items-center p-3 rounded-lg border bg-white">
+                    <div class="flex-1">
+                        <p class="font-semibold text-sm">${nome}</p>
+                        <p class="text-xs text-gray-500">${info.tipo === 'metro' ? 'Metros' : 'Unidades'}</p>
+                    </div>
+                    <input type="number" id="estoque_${nome}" value="${info.quantidade}" 
+                           class="w-24 px-2 py-1 rounded border border-gray-300 text-right font-bold"
+                           onchange="atualizarItemEstoque('${nome}', this.value)">
+                </div>
+            `).join('');
             
-            const qtd = parseFloat(prompt(`Quantidade atual de ${material}: ${db.estoque[material].quantidade}\nNova quantidade:`));
-            if (!isNaN(qtd) && qtd >= 0) {
-                db.estoque[material].quantidade = qtd;
-                salvarDados();
-                atualizarEstoque();
-                showToast('Estoque atualizado!');
-            }
+            // Adicionar botão salvar
+            const btn = document.createElement('button');
+            btn.className = 'w-full mt-4 bg-orange-600 text-white py-3 rounded-xl font-bold shadow-lg';
+            btn.textContent = '💾 Salvar Alterações';
+            btn.onclick = salvarAlteracoesEstoque;
+            lista.appendChild(btn);
         }
 
-        // PDF Generation
+        function atualizarItemEstoque(material, valor) {
+            db.estoque[material].quantidade = parseFloat(valor) || 0;
+        }
+
+        async function salvarAlteracoesEstoque() {
+            salvarDadosLocais();
+            await sincronizarComNuvem();
+            showToast('Estoque atualizado!');
+            atualizarEstoque();
+        }
+
+        // PDF
         async function gerarPDFIndividual(baixa) {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
@@ -542,37 +842,35 @@
             let y = 50;
             
             doc.setFont(undefined, 'bold');
-            doc.text('INFORMAÇÕES DA OS:', 20, y);
+            doc.text('INFORMAÇÕES:', 20, y);
             doc.setFont(undefined, 'normal');
             y += 10;
             
-            const info = [
+            [
                 `Cliente: ${baixa.cliente}`,
-                `Ordem de Serviço: ${baixa.os}`,
+                `OS: ${baixa.os}`,
                 `Técnico: ${baixa.tecnico}`,
                 `Data: ${new Date(baixa.data).toLocaleString('pt-BR')}`
-            ];
-            
-            info.forEach(line => {
+            ].forEach(line => {
                 doc.text(line, 20, y);
                 y += 8;
             });
             
             // Materiais
-            y += 10;
+            y += 5;
             doc.setFont(undefined, 'bold');
-            doc.text('MATERIAIS UTILIZADOS:', 20, y);
+            doc.text('MATERIAIS:', 20, y);
             doc.setFont(undefined, 'normal');
             y += 10;
             
-            const materiaisList = Object.entries(baixa.materiais)
-                .filter(([_, qtd]) => qtd > 0)
-                .map(([nome, qtd]) => [nome, qtd.toString(), db.estoque[nome].tipo === 'metro' ? 'metros' : 'unidades']);
+            const mats = Object.entries(baixa.materiais)
+                .filter(([_, q]) => q > 0)
+                .map(([n, q]) => [n, q.toString(), db.estoque[n].tipo === 'metro' ? 'metros' : 'un']);
             
             doc.autoTable({
                 startY: y,
-                head: [['Material', 'Quantidade', 'Unidade']],
-                body: materiaisList,
+                head: [['Material', 'Qtd', 'Unidade']],
+                body: mats,
                 theme: 'striped',
                 headStyles: { fillColor: [102, 126, 234] }
             });
@@ -581,33 +879,33 @@
             y = doc.lastAutoTable.finalY + 30;
             doc.line(20, y, 90, y);
             doc.line(120, y, 190, y);
-            doc.text('Assinatura do Técnico', 20, y + 10);
-            doc.text('Assinatura do Cliente', 120, y + 10);
+            doc.text('Técnico', 20, y + 10);
+            doc.text('Cliente', 120, y + 10);
             
             doc.save(`OS_${baixa.os}_${baixa.cliente}.pdf`);
         }
 
         function gerarPDFIndividualById(id) {
-            const baixa = db.baixas.find(b => b.id === id);
-            if (baixa) gerarPDFIndividual(baixa);
+            const b = db.baixas.find(x => x.id === id);
+            if (b) gerarPDFIndividual(b);
         }
 
         function gerarRelatorioPDF(tipo) {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF('landscape');
-            let baixas = db.baixas;
+            let baixas = [...db.baixas];
             
             if (tipo === 'tecnico') {
-                const tecnico = document.getElementById('selectTecnicoRelatorio').value;
-                if (!tecnico) return showToast('Selecione um técnico!', 'error');
-                baixas = baixas.filter(b => b.tecnico === tecnico);
+                const tec = document.getElementById('selectTecnicoRelatorio').value;
+                if (!tec) return showToast('Selecione um técnico!', 'error');
+                baixas = baixas.filter(b => b.tecnico === tec);
             } else if (tipo === 'periodo') {
-                const inicio = document.getElementById('dataInicio').value;
+                const ini = document.getElementById('dataInicio').value;
                 const fim = document.getElementById('dataFim').value;
-                if (!inicio || !fim) return showToast('Selecione as datas!', 'error');
+                if (!ini || !fim) return showToast('Selecione as datas!', 'error');
                 baixas = baixas.filter(b => {
                     const d = new Date(b.data);
-                    return d >= new Date(inicio) && d <= new Date(fim);
+                    return d >= new Date(ini) && d <= new Date(fim);
                 });
             }
             
@@ -618,119 +916,148 @@
             doc.setFontSize(16);
             doc.text('FENIX BAIXA LITORAL - RELATÓRIO', 148, 15, { align: 'center' });
             doc.setFontSize(10);
-            doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 148, 25, { align: 'center' });
+            doc.text(`Gerado: ${new Date().toLocaleString('pt-BR')}`, 148, 25, { align: 'center' });
             
             // Resumo
-            doc.setTextColor(0, 0, 0);
-            doc.setFontSize(12);
-            let y = 40;
-            
-            const totalMateriais = {};
+            const totais = {};
             baixas.forEach(b => {
-                Object.entries(b.materiais).forEach(([mat, qtd]) => {
-                    totalMateriais[mat] = (totalMateriais[mat] || 0) + qtd;
+                Object.entries(b.materiais).forEach(([m, q]) => {
+                    totais[m] = (totais[m] || 0) + q;
                 });
             });
             
-            doc.text('RESUMO DE CONSUMO:', 20, y);
-            y += 10;
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(12);
+            doc.text('CONSUMO TOTAL:', 20, 45);
             
-            const resumoData = Object.entries(totalMateriais)
-                .filter(([_, qtd]) => qtd > 0)
-                .map(([mat, qtd]) => [mat, qtd.toString()]);
+            const resumo = Object.entries(totais).filter(([_, q]) => q > 0).map(([m, q]) => [m, q.toString()]);
             
             doc.autoTable({
-                startY: y,
-                head: [['Material', 'Total Consumido']],
-                body: resumoData,
+                startY: 50,
+                head: [['Material', 'Total']],
+                body: resumo,
                 theme: 'grid',
                 headStyles: { fillColor: [118, 75, 162] },
                 margin: { right: 150 }
             });
             
-            // Lista detalhada
-            const detalhesData = baixas.map(b => [
+            // Detalhes
+            const detalhes = baixas.map(b => [
                 new Date(b.data).toLocaleDateString('pt-BR'),
                 b.os,
-                b.cliente,
+                b.cliente.substring(0, 20),
                 b.tecnico,
-                Object.entries(b.materiais).filter(([_, q]) => q > 0).length + ' itens'
+                Object.values(b.materiais).reduce((a, c) => a + c, 0).toFixed(1)
             ]);
             
             doc.autoTable({
-                startY: y,
-                head: [['Data', 'OS', 'Cliente', 'Técnico', 'Itens']],
-                body: detalhesData,
+                startY: 50,
+                head: [['Data', 'OS', 'Cliente', 'Técnico', 'Total Itens']],
+                body: detalhes,
                 theme: 'striped',
                 headStyles: { fillColor: [102, 126, 234] },
                 margin: { left: 160 }
             });
             
-            doc.save(`Relatorio_Fenix_${tipo}_${Date.now()}.pdf`);
-            showToast('Relatório gerado com sucesso!');
-        }
-
-        // Utilitários
-        function excluirBaixa(id) {
-            if (!confirm('Tem certeza que deseja excluir esta baixa?')) return;
-            
-            const idx = db.baixas.findIndex(b => b.id === id);
-            if (idx > -1) {
-                // Devolver ao estoque
-                const baixa = db.baixas[idx];
-                Object.entries(baixa.materiais).forEach(([mat, qtd]) => {
-                    db.estoque[mat].quantidade += qtd;
-                });
-                
-                db.baixas.splice(idx, 1);
-                salvarDados();
-                atualizarListaHistorico();
-                atualizarEstoque();
-                showToast('Baixa excluída e estoque restaurado!');
-            }
-        }
-
-        function verDetalhes(id) {
-            const baixa = db.baixas.find(b => b.id === id);
-            if (!baixa) return;
-            
-            const materiais = Object.entries(baixa.materiais)
-                .filter(([_, qtd]) => qtd > 0)
-                .map(([nome, qtd]) => `• ${nome}: ${qtd} ${db.estoque[nome].tipo === 'metro' ? 'metros' : 'unidades'}`)
-                .join('\n');
-            
-            alert(`OS: ${baixa.os}\nCliente: ${baixa.cliente}\nTécnico: ${baixa.tecnico}\nData: ${new Date(baixa.data).toLocaleString('pt-BR')}\n\nMateriais:\n${materiais}\n\nObs: ${baixa.observacoes || 'Nenhuma'}`);
+            doc.save(`Relatorio_${tipo}_${Date.now()}.pdf`);
+            showToast('Relatório gerado!');
         }
 
         function preencherSelectTecnicos() {
-            const tecnicos = [...new Set(db.baixas.map(b => b.tecnico))];
-            const select = document.getElementById('selectTecnicoRelatorio');
-            select.innerHTML = '<option value="">Selecione um técnico...</option>' + 
-                tecnicos.map(t => `<option value="${t}">${t}</option>`).join('');
+            const tecs = [...new Set(db.baixas.map(b => b.tecnico))];
+            const sel = document.getElementById('selectTecnicoRelatorio');
+            sel.innerHTML = '<option value="">Selecione...</option>' + 
+                tecs.map(t => `<option value="${t}">${t}</option>`).join('');
         }
 
         function atualizarEstatisticas() {
             document.getElementById('statTotalBaixas').textContent = db.baixas.length;
-            const total = db.baixas.reduce((acc, b) => acc + Object.values(b.materiais).reduce((a, c) => a + c, 0), 0);
+            const total = db.baixas.reduce((a, b) => a + Object.values(b.materiais).reduce((c, d) => c + d, 0), 0);
             document.getElementById('statTotalMateriais').textContent = Math.round(total);
         }
 
-        // Persistência
-        function salvarDados() {
+        // Persistência e Sincronização
+        function salvarDadosLocais() {
             localStorage.setItem('fenix_db', JSON.stringify(db));
+            localStorage.setItem('fenix_last_save', new Date().toISOString());
         }
 
-        function carregarDados() {
+        function carregarDadosLocais() {
             const saved = localStorage.getItem('fenix_db');
             if (saved) {
-                db = JSON.parse(saved);
+                const parsed = JSON.parse(saved);
+                db.baixas = parsed.baixas || [];
+                if (parsed.estoque) db.estoque = parsed.estoque;
+                if (parsed.config) db.config = parsed.config;
             }
         }
 
-        // Backup/Restore
-        function exportarBackup() {
-            const dataStr = JSON.stringify(db, null, 2);
-            const blob = new Blob([dataStr], { type: 'application/json' });
+        // Sincronização com GitHub Gist (Nuvem gratuita)
+        async function sincronizarComNuvem() {
+            if (!CONFIG.githubToken) {
+                // Modo offline - apenas local
+                return;
+            }
+            
+            try {
+                const data = {
+                    description: "Fenix Baixa Litoral - Database",
+                    public: false,
+                    files: {
+                        "database.json": {
+                            content: JSON.stringify(db, null, 2)
+                        }
+                    }
+                };
+                
+                let url = 'https://api.github.com/gists';
+                let method = 'POST';
+                
+                if (CONFIG.gistId) {
+                    url += `/${CONFIG.gistId}`;
+                    method = 'PATCH';
+                }
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Authorization': `token ${CONFIG.githubToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    if (!CONFIG.gistId) {
+                        CONFIG.gistId = result.id;
+                        localStorage.setItem('fenix_gist_id', result.id);
+                    }
+                    showToast('Sincronizado com nuvem!');
+                }
+            } catch (e) {
+                console.error('Erro sync:', e);
+            }
+        }
+
+        async function sincronizarDados() {
+            showToast('Sincronizando...');
+            await sincronizarComNuvem();
+            carregarDadosLocais();
+            atualizarListaHistorico();
+            atualizarEstoque();
+            showToast('Dados atualizados!');
+        }
+
+        // Exportar/Importar
+        function exportarDados() {
+            const data = {
+                ...db,
+                exportado_em: new Date().toISOString(),
+                versao: '1.0'
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -739,29 +1066,32 @@
             showToast('Backup exportado!');
         }
 
-        function importarBackup() {
+        function importarDados() {
             document.getElementById('importFile').click();
         }
 
-        function processarImportacao(event) {
-            const file = event.target.files[0];
+        function processarImportacao(e) {
+            const file = e.target.files[0];
             if (!file) return;
             
             const reader = new FileReader();
-            reader.onload = (e) => {
+            reader.onload = (ev) => {
                 try {
-                    const data = JSON.parse(e.target.result);
+                    const data = JSON.parse(ev.target.result);
                     if (data.baixas && data.estoque) {
+                        if (!confirm(`Isso substituirá ${db.baixas.length} registros locais por ${data.baixas.length} do arquivo. Continuar?`)) return;
+                        
                         db = data;
-                        salvarDados();
+                        salvarDadosLocais();
+                        sincronizarComNuvem();
                         atualizarListaHistorico();
                         atualizarEstoque();
-                        showToast('Backup restaurado com sucesso!');
+                        showToast('Dados importados!');
                     } else {
                         throw new Error('Formato inválido');
                     }
                 } catch (err) {
-                    showToast('Erro ao importar arquivo!', 'error');
+                    showToast('Erro ao importar!', 'error');
                 }
             };
             reader.readAsText(file);
@@ -769,12 +1099,22 @@
 
         // Toast
         function showToast(msg, type = 'success') {
-            const toast = document.getElementById('toast');
-            const msgEl = document.getElementById('toastMessage');
-            msgEl.textContent = msg;
-            toast.className = `fixed bottom-4 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-full shadow-2xl transition-all duration-300 z-50 ${type === 'error' ? 'bg-red-600' : 'bg-gray-800'} text-white`;
-            toast.classList.remove('hidden');
-            setTimeout(() => toast.classList.add('hidden'), 3000);
+            const t = document.getElementById('toast');
+            const m = document.getElementById('toastMessage');
+            m.textContent = msg;
+            t.className = `fixed bottom-4 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-full shadow-2xl transition-all duration-300 z-50 ${type === 'error' ? 'bg-red-600' : 'bg-gray-800'} text-white`;
+            t.classList.remove('hidden');
+            setTimeout(() => t.classList.add('hidden'), 3000);
+        }
+
+        // Configurar token GitHub (opcional - para sincronização em nuvem)
+        function configurarGithubToken() {
+            const token = prompt('Digite seu GitHub Personal Access Token (opcional):');
+            if (token) {
+                CONFIG.githubToken = token;
+                localStorage.setItem('fenix_github_token', token);
+                showToast('Token configurado!');
+            }
         }
     </script>
 </body>
