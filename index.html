@@ -22,8 +22,10 @@
         .loading { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .modal { background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); }
-        .protected { position: relative; }
-        .protected::after { content: '🔒'; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); }
+        .estoque-grid { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 8px; align-items: center; }
+        @media (max-width: 640px) { .estoque-grid { grid-template-columns: 1fr 1fr 1fr auto; } }
+        .btn-edicao-estoque { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+        .btn-edicao-estoque:hover { background: linear-gradient(135deg, #d97706 0%, #b45309 100%); }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -97,7 +99,7 @@
         </div>
     </div>
 
-    <!-- Modal Autenticação Protegida -->
+    <!-- Modal Autenticação Protegida (Apenas para exclusão de histórico) -->
     <div id="modalAuth" class="fixed inset-0 modal hidden z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl p-6 w-full max-w-md card-shadow slide-in">
             <div class="text-center mb-4">
@@ -167,8 +169,8 @@
                 <button onclick="showSection('relatorios'); toggleMenu()" class="w-full text-left px-4 py-3 rounded-lg hover:bg-purple-50 text-gray-700 font-medium transition flex items-center">
                     <span class="mr-3">📊</span> Relatórios
                 </button>
-                <button onclick="solicitarAuth('estoque')" class="w-full text-left px-4 py-3 rounded-lg hover:bg-orange-50 text-orange-700 font-medium transition flex items-center protected">
-                    <span class="mr-3">📦</span> Editar Estoque
+                <button onclick="showSection('estoque'); toggleMenu()" class="w-full text-left px-4 py-3 rounded-lg hover:bg-orange-50 text-orange-700 font-medium transition flex items-center">
+                    <span class="mr-3">📦</span> Controle de Estoque
                 </button>
                 <button onclick="solicitarAuth('limpar')" class="w-full text-left px-4 py-3 rounded-lg hover:bg-red-50 text-red-700 font-medium transition flex items-center protected">
                     <span class="mr-3">🗑️</span> Limpar Histórico
@@ -388,7 +390,7 @@
             </div>
         </section>
 
-        <!-- Estoque Section (Protegida) -->
+        <!-- Estoque Section (SEM PROTEÇÃO - Edição Livre) -->
         <section id="estoque" class="hidden slide-in">
             <div class="bg-white rounded-2xl card-shadow p-6">
                 <div class="flex items-center justify-between mb-6">
@@ -396,16 +398,25 @@
                         <span class="bg-orange-100 text-orange-600 p-2 rounded-lg mr-3">📦</span>
                         Controle de Estoque
                     </h2>
-                    <span class="bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-bold">🔒 PROTEGIDO</span>
+                    <button onclick="alternarModoEstoque()" id="btnModoEstoque" class="btn-edicao-estoque text-white px-4 py-2 rounded-lg font-semibold shadow-md transition flex items-center">
+                        <span class="mr-2">✏️</span> Editar Estoque
+                    </button>
                 </div>
 
-                <div class="space-y-4" id="listaEstoque">
+                <!-- Legenda -->
+                <div class="flex flex-wrap gap-2 mb-4 text-xs">
+                    <span class="flex items-center"><span class="w-3 h-3 bg-green-100 border border-green-300 rounded mr-1"></span> OK</span>
+                    <span class="flex items-center"><span class="w-3 h-3 bg-yellow-100 border border-yellow-300 rounded mr-1"></span> Atenção</span>
+                    <span class="flex items-center"><span class="w-3 h-3 bg-red-100 border border-red-300 rounded mr-1"></span> Crítico</span>
                 </div>
 
-                <div class="mt-6 p-4 bg-orange-50 rounded-xl border border-orange-200">
-                    <p class="text-sm text-orange-800 text-center">
-                        <strong>⚠️ Área Restrita</strong><br>
-                        Apenas usuários autenticados podem editar o estoque.
+                <div class="space-y-3" id="listaEstoque">
+                    <!-- Visualização ou Edição será inserida aqui -->
+                </div>
+
+                <div id="avisoEstoque" class="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200 hidden">
+                    <p class="text-sm text-blue-800 text-center">
+                        💡 <strong>Dica:</strong> Altere os valores e clique em "Salvar Alterações"
                     </p>
                 </div>
             </div>
@@ -419,7 +430,7 @@
     </div>
 
     <script>
-        // Configurações de Segurança
+        // Configurações
         const CONFIG = {
             usuarioPadrao: 'fenix',
             senhaPadrao: 'Hung0v3r7@',
@@ -446,10 +457,11 @@
             },
             config: {
                 usuario: 'fenix',
-                senhaHash: btoa('Hung0v3r7@') // Simples encoding base64
+                senhaHash: btoa('Hung0v3r7@')
             }
         };
 
+        let modoEdicaoEstoque = false;
         let isLoggedIn = false;
 
         // Inicialização
@@ -498,7 +510,7 @@
             preencherSelectTecnicos();
         }
 
-        // Proteção de áreas restritas
+        // Proteção apenas para exclusão de histórico
         function solicitarAuth(acao) {
             document.getElementById('authAcao').value = acao;
             document.getElementById('modalAuth').classList.remove('hidden');
@@ -518,10 +530,7 @@
             
             if (user === db.config.usuario && btoa(pass) === db.config.senhaHash) {
                 fecharModalAuth();
-                if (acao === 'estoque') {
-                    showSection('estoque');
-                    habilitarEdicaoEstoque();
-                } else if (acao === 'limpar') {
+                if (acao === 'limpar') {
                     solicitarLimparHistorico();
                 }
             } else {
@@ -587,7 +596,10 @@
             document.getElementById(sectionId).classList.remove('hidden');
             
             if (sectionId === 'historico') atualizarListaHistorico();
-            if (sectionId === 'estoque') atualizarEstoque();
+            if (sectionId === 'estoque') {
+                modoEdicaoEstoque = false;
+                atualizarEstoque();
+            }
             if (sectionId === 'relatorios') {
                 atualizarEstatisticas();
                 preencherSelectTecnicos();
@@ -766,60 +778,159 @@
             showToast('Histórico limpo!');
         }
 
-        // Estoque
-        function atualizarEstoque() {
+        // Estoque - Alternar entre Visualização e Edição (SEM SENHA)
+        function alternarModoEstoque() {
+            modoEdicaoEstoque = !modoEdicaoEstoque;
+            const btn = document.getElementById('btnModoEstoque');
+            const aviso = document.getElementById('avisoEstoque');
+            
+            if (modoEdicaoEstoque) {
+                btn.innerHTML = '<span class="mr-2">👁️</span> Ver Estoque';
+                btn.classList.remove('btn-edicao-estoque');
+                btn.classList.add('bg-gray-600');
+                aviso.classList.remove('hidden');
+                mostrarEdicaoEstoque();
+            } else {
+                btn.innerHTML = '<span class="mr-2">✏️</span> Editar Estoque';
+                btn.classList.add('btn-edicao-estoque');
+                btn.classList.remove('bg-gray-600');
+                aviso.classList.add('hidden');
+                mostrarVisualizacaoEstoque();
+            }
+        }
+
+        function mostrarVisualizacaoEstoque() {
             const lista = document.getElementById('listaEstoque');
             lista.innerHTML = Object.entries(db.estoque).map(([nome, info]) => {
-                const alerta = info.quantidade <= info.minimo ? 'bg-red-100 border-red-200 text-red-800' : 
-                              info.quantidade <= info.minimo * 1.5 ? 'bg-yellow-100 border-yellow-200 text-yellow-800' : 
+                const percentual = (info.quantidade / info.minimo) * 100;
+                const alerta = percentual <= 100 ? 'bg-red-100 border-red-200 text-red-800' : 
+                              percentual <= 150 ? 'bg-yellow-100 border-yellow-200 text-yellow-800' : 
                               'bg-green-100 border-green-200 text-green-800';
                 
                 return `
                     <div class="flex justify-between items-center p-3 rounded-lg border ${alerta}">
-                        <div>
+                        <div class="flex-1">
                             <p class="font-semibold text-sm">${nome}</p>
-                            <p class="text-xs opacity-75">${info.tipo === 'metro' ? 'Metros' : 'Unidades'}</p>
+                            <p class="text-xs opacity-75">${info.tipo === 'metro' ? 'Metros' : 'Unidades'} | Mín: ${info.minimo}</p>
                         </div>
                         <div class="text-right">
-                            <p class="text-xl font-bold">${info.quantidade}</p>
-                            <p class="text-xs opacity-75">Mín: ${info.minimo}</p>
+                            <p class="text-2xl font-bold">${info.quantidade}</p>
                         </div>
                     </div>
                 `;
             }).join('');
         }
 
-        function habilitarEdicaoEstoque() {
+        function mostrarEdicaoEstoque() {
             const lista = document.getElementById('listaEstoque');
-            lista.innerHTML = Object.entries(db.estoque).map(([nome, info]) => `
-                <div class="flex justify-between items-center p-3 rounded-lg border bg-white">
-                    <div class="flex-1">
+            
+            // Cabeçalho
+            lista.innerHTML = `
+                <div class="estoque-grid bg-gray-100 p-2 rounded-lg font-bold text-xs text-gray-600 mb-2">
+                    <span>Material</span>
+                    <span class="text-center">Atual</span>
+                    <span class="text-center text-orange-600">Mínimo</span>
+                    <span></span>
+                </div>
+            `;
+            
+            // Campos editáveis
+            lista.innerHTML += Object.entries(db.estoque).map(([nome, info]) => `
+                <div class="estoque-grid bg-white p-2 rounded-lg border border-gray-200 items-center">
+                    <div>
                         <p class="font-semibold text-sm">${nome}</p>
-                        <p class="text-xs text-gray-500">${info.tipo === 'metro' ? 'Metros' : 'Unidades'}</p>
+                        <p class="text-xs text-gray-500">${info.tipo === 'metro' ? 'Metros' : 'Unid.'}</p>
                     </div>
-                    <input type="number" id="estoque_${nome}" value="${info.quantidade}" 
-                           class="w-24 px-2 py-1 rounded border border-gray-300 text-right font-bold"
-                           onchange="atualizarItemEstoque('${nome}', this.value)">
+                    <input type="number" id="estoque_qtd_${nome.replace(/\s+/g, '_')}" 
+                           value="${info.quantidade}" min="0" step="${info.tipo === 'metro' ? '0.1' : '1'}"
+                           class="w-full px-2 py-1 text-center border border-gray-300 rounded text-sm font-bold"
+                           onchange="validarMudancaEstoque('${nome}')">
+                    <input type="number" id="estoque_min_${nome.replace(/\s+/g, '_')}" 
+                           value="${info.minimo}" min="0" step="${info.tipo === 'metro' ? '0.1' : '1'}"
+                           class="w-full px-2 py-1 text-center border border-orange-300 rounded text-sm font-bold text-orange-600"
+                           onchange="validarMudancaEstoque('${nome}')">
+                    <button onclick="resetarEstoque('${nome}')" class="text-gray-400 hover:text-gray-600 p-1" title="Resetar para padrão">↩️</button>
                 </div>
             `).join('');
             
-            // Adicionar botão salvar
-            const btn = document.createElement('button');
-            btn.className = 'w-full mt-4 bg-orange-600 text-white py-3 rounded-xl font-bold shadow-lg';
-            btn.textContent = '💾 Salvar Alterações';
-            btn.onclick = salvarAlteracoesEstoque;
-            lista.appendChild(btn);
+            // Botão salvar
+            const actions = document.createElement('div');
+            actions.className = 'mt-4';
+            actions.innerHTML = `
+                <button onclick="salvarAlteracoesEstoque()" class="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition flex items-center justify-center">
+                    <span class="mr-2">💾</span> Salvar Alterações
+                </button>
+            `;
+            lista.appendChild(actions);
+            
+            showToast('Modo edição ativado - Altere os valores livremente');
         }
 
-        function atualizarItemEstoque(material, valor) {
-            db.estoque[material].quantidade = parseFloat(valor) || 0;
+        function validarMudancaEstoque(material) {
+            const qtdInput = document.getElementById(`estoque_qtd_${material.replace(/\s+/g, '_')}`);
+            const minInput = document.getElementById(`estoque_min_${material.replace(/\s+/g, '_')}`);
+            const qtd = parseFloat(qtdInput.value) || 0;
+            const min = parseFloat(minInput.value) || 0;
+            
+            // Atualizar objeto
+            db.estoque[material].quantidade = qtd;
+            db.estoque[material].minimo = min;
+            
+            // Feedback visual
+            const percentual = min > 0 ? (qtd / min) * 100 : 100;
+            
+            // Remover classes anteriores
+            qtdInput.classList.remove('bg-red-100', 'bg-yellow-100', 'bg-green-100', 'border-red-500', 'border-yellow-500', 'border-green-500');
+            
+            if (percentual <= 100) {
+                qtdInput.classList.add('bg-red-100', 'border-red-500');
+            } else if (percentual <= 150) {
+                qtdInput.classList.add('bg-yellow-100', 'border-yellow-500');
+            } else {
+                qtdInput.classList.add('bg-green-100', 'border-green-500');
+            }
+        }
+
+        function resetarEstoque(material) {
+            const padroes = {
+                'Cabo Drop Flat': { quantidade: 1000, minimo: 100 },
+                'Cabo de Rede': { quantidade: 500, minimo: 50 },
+                'Conector Verde': { quantidade: 200, minimo: 20 },
+                'Conector Azul': { quantidade: 200, minimo: 20 },
+                'Acoplador': { quantidade: 150, minimo: 15 },
+                'Alça 1.33': { quantidade: 300, minimo: 30 },
+                'Alça Fe': { quantidade: 300, minimo: 30 },
+                'Fixa Fio': { quantidade: 500, minimo: 50 },
+                'Isolador': { quantidade: 200, minimo: 20 },
+                'Selo de Aço': { quantidade: 400, minimo: 40 },
+                'Pitão': { quantidade: 250, minimo: 25 },
+                'Plaqueta': { quantidade: 200, minimo: 20 }
+            };
+            
+            if (padroes[material]) {
+                db.estoque[material] = { ...db.estoque[material], ...padroes[material] };
+                mostrarEdicaoEstoque(); // Recarregar
+                showToast(`${material} resetado para padrão`);
+            }
         }
 
         async function salvarAlteracoesEstoque() {
             salvarDadosLocais();
             await sincronizarComNuvem();
-            showToast('Estoque atualizado!');
-            atualizarEstoque();
+            showToast('Estoque salvo com sucesso!');
+            
+            // Voltar para visualização após salvar
+            setTimeout(() => {
+                alternarModoEstoque();
+            }, 1000);
+        }
+
+        function atualizarEstoque() {
+            if (modoEdicaoEstoque) {
+                mostrarEdicaoEstoque();
+            } else {
+                mostrarVisualizacaoEstoque();
+            }
         }
 
         // PDF
@@ -976,7 +1087,7 @@
             document.getElementById('statTotalMateriais').textContent = Math.round(total);
         }
 
-        // Persistência e Sincronização
+        // Persistência
         function salvarDadosLocais() {
             localStorage.setItem('fenix_db', JSON.stringify(db));
             localStorage.setItem('fenix_last_save', new Date().toISOString());
@@ -992,12 +1103,9 @@
             }
         }
 
-        // Sincronização com GitHub Gist (Nuvem gratuita)
+        // Sincronização
         async function sincronizarComNuvem() {
-            if (!CONFIG.githubToken) {
-                // Modo offline - apenas local
-                return;
-            }
+            if (!CONFIG.githubToken) return;
             
             try {
                 const data = {
@@ -1105,16 +1213,6 @@
             t.className = `fixed bottom-4 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-full shadow-2xl transition-all duration-300 z-50 ${type === 'error' ? 'bg-red-600' : 'bg-gray-800'} text-white`;
             t.classList.remove('hidden');
             setTimeout(() => t.classList.add('hidden'), 3000);
-        }
-
-        // Configurar token GitHub (opcional - para sincronização em nuvem)
-        function configurarGithubToken() {
-            const token = prompt('Digite seu GitHub Personal Access Token (opcional):');
-            if (token) {
-                CONFIG.githubToken = token;
-                localStorage.setItem('fenix_github_token', token);
-                showToast('Token configurado!');
-            }
         }
     </script>
 </body>
